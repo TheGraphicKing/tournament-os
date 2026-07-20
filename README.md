@@ -1,20 +1,23 @@
-# Tournament OS + Tournament Builder
+# Rizzfitt Tournament Builder
 
-Two complementary Rizzfitt products in one Next.js (App Router, TypeScript)
-+ Supabase + Tailwind v4 + shadcn/ui codebase:
+A Next.js (App Router, TypeScript) + Supabase + Tailwind v4 + shadcn/ui app.
+The live product is the **Tournament Builder**: describe a tournament once
+and get a live website, an email campaign with contacts, and a marketing
+kit, automatically — **no account, no sign-in**. Phase 1 (intake → canonical
+Brief → Generation Spec) is in; the three generation agents follow.
 
-- **Tournament OS** (`/dashboard`, `/login`, `/onboarding`) — multi-tenant
-  SaaS (PWA) for running tournaments end to end: registrations, payments,
-  comms, and the match-day handoff to Rizzfitt's scoring core.
-- **Tournament Builder** (`/builder`) — describe a tournament once and get a
-  live website, an email campaign with contacts, and a marketing kit,
-  automatically. Phase 1 (intake → canonical Brief → Generation Spec) is in;
-  the three generation agents follow.
+Briefs are anonymous and reached by an `id` + secret `edit_token`, gated
+through `SECURITY DEFINER` RPCs (no login needed).
 
-Shared design system, Supabase, and Zod boundary. The app **boots and the
-public pages render even before Supabase is configured**, so the Vercel
-deploy is viewable immediately (DB-backed features light up once the env
-vars are set — see Deploy below).
+The repo also contains the **Tournament OS** foundation — the full
+registrations/payments/comms data model, RLS, and the scoring-core boundary
+(`supabase/migrations/`, `src/lib/domain`, `src/lib/core`, `src/lib/supabase`)
+— kept as the backend foundation for the organiser side. The auth UI
+(login/onboarding/dashboard) was removed to keep the shipped app focused and
+fully working; it can be reintroduced later on top of the same schema.
+
+The app **boots and renders even before Supabase is configured** (the builder
+save lights up once env vars are set — see Deploy below).
 
 ## Deploy to Vercel
 
@@ -24,8 +27,8 @@ database, set these in Vercel → Project → Settings → Environment Variables
 
 | Variable | Required for | Where to get it |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | auth, DB, builder | Supabase → Project Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | auth, DB, builder | same |
+| `NEXT_PUBLIC_SUPABASE_URL` | saving builder briefs | Supabase → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | saving builder briefs | same |
 | `SUPABASE_SERVICE_ROLE_KEY` | core REST API, webhooks | same (server-only) |
 | `CORE_API_KEY` | `GET /api/core/entry-list` | your own secret |
 | `CORE_SHARED_SECRET` | `POST /api/core/results` | your own secret |
@@ -67,26 +70,15 @@ then apply migrations with `supabase db push`.
 - **RLS** — memberships gate org data; players read their own
   entries/payments; anonymous users read only published tournament page
   data. Helpers live in the `private` schema.
-- **Auth** — passwordless **email sign-in link** on **/login**
-  (Supabase built-in email; free-tier compatible, no SMS/domain needed),
-  exchanged at `/auth/callback`; session refresh in
-  [proxy.ts](src/proxy.ts); per-org role helpers (owner/manager/desk) in
-  [session.ts](src/lib/auth/session.ts). The app degrades gracefully when
-  Supabase env vars are absent (see [env.ts](src/lib/supabase/env.ts)).
+- **No auth** — the shipped app has no login. The Builder is anonymous
+  (id + `edit_token`). The app degrades gracefully when Supabase env vars
+  are absent (see [env.ts](src/lib/supabase/env.ts)).
 - **Domain types** — Zod schemas for every table at the boundary
   ([schemas.ts](src/lib/domain/schemas.ts)) and a typed Supabase client
   ([database.types.ts](src/lib/supabase/database.types.ts)). No `any` in
   domain code.
 - **PWA** — installable manifest + minimal service worker with an
   offline fallback page.
-- **Onboarding (Flow O) + dashboard shell** — `/onboarding` wizard:
-  O1 captures the user's name, O2 creates the organisation (name → deduped
-  slug, city, logo uploaded to the `org-logos` storage bucket) atomically
-  with an owner membership via the `create_organisation` RPC. `/dashboard`
-  lists the active org's tournaments (RLS-scoped), with an org switcher +
-  profile in [AppShell](src/components/app/app-shell.tsx); the empty state
-  shows a welcome, a 4-item getting-started checklist, and a sample-event
-  preview link. Login falls back to email magic link after 3 OTP failures.
 - **Core boundary** (DATA_MODEL §5) — `core_entry_list` view (locked
   entries, teams resolved, `is_multi_entry`), `matches` + `results`
   tables written by the core, an audit-log amendment `NOTIFY`, and a
@@ -103,17 +95,6 @@ then apply migrations with `supabase db push`.
   contacts + conflict detection, marketing kit) are the next phases and are
   built **template-first**, upgrading automatically if `ANTHROPIC_API_KEY`
   is added.
-
-## Demo logins (local seed)
-
-| Who | Email | Role |
-| --- | --- | --- |
-| Asha Owner | `owner@rizzfitt.demo` | owner of RizzFitt Sports Club |
-| Dev Desk | `desk@rizzfitt.demo` | desk |
-| Rohan/Meera/Arjun/Sana | `*@player.demo` | players (no membership) |
-
-Password locally: `demo-password`. Phone OTP test numbers
-`+919800000001/2` accept code `123456` (see `supabase/config.toml`).
 
 ## Checks
 
