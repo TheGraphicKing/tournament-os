@@ -1,26 +1,171 @@
+/* Fonts: Clash Display (display), General Sans (body) via Fontshare; Space Mono via Google */
+@import url("https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=general-sans@400,500,600,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap");
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/* ════════════════════════════════════════════════════════════
+   RIZZFITT_APP_DESIGN_SYSTEM.md — PART 2/3 tokens
+   App chrome ALWAYS uses these. Organiser themes override only
+   the --ev-* tokens on the public page via [data-ev-theme].
+   ════════════════════════════════════════════════════════════ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand */
+  --orange: #f16c1d;
+  --orange-600: #d75e14;
+  --orange-050: #fdeee3;
+  --ink: #121212;
+  --ink-800: #1c1b1a;
+  --ink-700: #262422;
+
+  /* App neutrals (light UI by default) */
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --surface-2: #f4f4f1;
+  --border: #e7e4de;
+  --text: #1a1a1a;
+  --text-muted: #6b635b;
+  --text-faint: #9a938a;
+
+  /* Status (semantic — pills only, never decorative) */
+  --ok: #1fa971;
+  --ok-bg: #e7f6ef;
+  --warn: #e08600;
+  --warn-bg: #fcf1df;
+  --danger: #e5484d;
+  --danger-bg: #fcecec;
+  --info: #3a7dd8;
+  --info-bg: #eaf1fc;
+  --live: #ff3b30;
+
+  /* Focus */
+  --focus: 0 0 0 3px rgba(241, 108, 29, 0.45);
+
+  /* Organiser theme tokens (public page only — PART 4).
+     Defaults = RizzFitt brand; overridden per tournament via
+     inline style on the [data-ev-theme] wrapper. */
+  --ev-accent: var(--orange);
+  --ev-accent-press: var(--orange-600);
+  --ev-ink: var(--ink);
+  --ev-surface: var(--surface);
+  --ev-on-accent: #ffffff;
+
+  /* shadcn/ui semantic mapping → RizzFitt tokens */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--orange);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--orange-050);
+  --accent-foreground: var(--orange-600);
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --input: var(--border);
+  --ring: var(--orange);
+  --radius: 0.625rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand + neutrals */
+  --color-orange: var(--orange);
+  --color-orange-600: var(--orange-600);
+  --color-orange-050: var(--orange-050);
+  --color-ink: var(--ink);
+  --color-ink-800: var(--ink-800);
+  --color-ink-700: var(--ink-700);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+
+  /* Status */
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-live: var(--live);
+
+  /* Organiser theme (public page) */
+  --color-ev-accent: var(--ev-accent);
+  --color-ev-accent-press: var(--ev-accent-press);
+  --color-ev-ink: var(--ev-ink);
+  --color-ev-surface: var(--ev-surface);
+  --color-ev-on-accent: var(--ev-on-accent);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Typography (PART 3) — emitted as CSS vars + font-* utilities */
+@theme {
+  --font-display: "Clash Display", system-ui, sans-serif;
+  --font-body: "General Sans", system-ui, sans-serif;
+  --font-sans: "General Sans", system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+  /* Every number, money value, date, score, ID, count → mono tabular */
+  .num,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
