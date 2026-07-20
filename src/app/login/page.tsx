@@ -4,172 +4,32 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { phoneSchema } from "@/lib/domain/schemas";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { FormField } from "@/components/app/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/lib/toast";
 
 const emailSchema = z.string().email("Enter a valid email address");
-const otpSchema = z.string().regex(/^\d{6}$/, "Enter the 6-digit code");
+const codeSchema = z.string().regex(/^\d{6}$/, "Enter the 6-digit code");
 
+/**
+ * Sign in with an email one-time code (6 digits). Free via Supabase's
+ * built-in email — no SMS provider, no magic-link round-trip. The whole
+ * flow: enter email -> receive code -> verify.
+ */
 export default function LoginPage() {
-  const [tab, setTab] = useState("phone");
-
-  return (
-    <main className="flex min-h-dvh items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm rounded-lg border bg-card p-6">
-        <h1 className="font-display text-[1.75rem] font-semibold">Sign in</h1>
-        <p className="mt-1 text-text-muted">
-          Phone OTP is the fastest way in. Email works too.
-        </p>
-        <Tabs value={tab} onValueChange={setTab} className="mt-5">
-          <TabsList className="w-full">
-            <TabsTrigger value="phone" className="flex-1">
-              Phone
-            </TabsTrigger>
-            <TabsTrigger value="email" className="flex-1">
-              Email
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="phone">
-            {/* O1 edge: after 3 OTP failures, fall back to email magic link. */}
-            <PhoneOtpForm
-              onTooManyFailures={() => {
-                setTab("email");
-                toast.info("Trouble with the code? Try an email magic link instead.");
-              }}
-            />
-          </TabsContent>
-          <TabsContent value="email">
-            <MagicLinkForm />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </main>
-  );
-}
-
-function PhoneOtpForm({ onTooManyFailures }: { onTooManyFailures: () => void }) {
   const router = useRouter();
   const supabase = createClient();
-  const [phone, setPhone] = useState("+91");
-  const [code, setCode] = useState("");
-  const [stage, setStage] = useState<"enter_phone" | "enter_code">("enter_phone");
-  const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState(false);
-  const [fails, setFails] = useState(0);
+  const configured = isSupabaseConfigured();
 
-  async function sendOtp(e: React.FormEvent) {
-    e.preventDefault();
-    const parsed = phoneSchema.safeParse(phone.replace(/\s/g, ""));
-    if (!parsed.success) {
-      setError(parsed.error.issues[0].message);
-      return;
-    }
-    setError(undefined);
-    setBusy(true);
-    const { error: err } = await supabase.auth.signInWithOtp({ phone: parsed.data });
-    setBusy(false);
-    if (err) {
-      setError(err.message);
-      return;
-    }
-    toast.success("Code sent by SMS");
-    setStage("enter_code");
-  }
-
-  async function verifyOtp(e: React.FormEvent) {
-    e.preventDefault();
-    const parsed = otpSchema.safeParse(code.trim());
-    if (!parsed.success) {
-      setError(parsed.error.issues[0].message);
-      return;
-    }
-    setError(undefined);
-    setBusy(true);
-    const { error: err } = await supabase.auth.verifyOtp({
-      phone: phone.replace(/\s/g, ""),
-      token: parsed.data,
-      type: "sms",
-    });
-    setBusy(false);
-    if (err) {
-      const next = fails + 1;
-      setFails(next);
-      setError(err.message);
-      if (next >= 3) onTooManyFailures();
-      return;
-    }
-    router.push("/dashboard");
-    router.refresh();
-  }
-
-  if (stage === "enter_code") {
-    return (
-      <form onSubmit={verifyOtp} className="mt-4 space-y-4">
-        <FormField label="6-digit code" helper={`Sent to ${phone}`} error={error} required>
-          {(props) => (
-            <Input
-              {...props}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              className="font-mono tracking-[0.3em]"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-          )}
-        </FormField>
-        <Button type="submit" className="w-full" disabled={busy}>
-          {busy ? "Verifying…" : "Verify & sign in"}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full"
-          onClick={() => setStage("enter_phone")}
-        >
-          Use a different number
-        </Button>
-      </form>
-    );
-  }
-
-  return (
-    <form onSubmit={sendOtp} className="mt-4 space-y-4">
-      <FormField
-        label="Phone number"
-        helper="International format, e.g. +919876543210"
-        error={error}
-        required
-      >
-        {(props) => (
-          <Input
-            {...props}
-            type="tel"
-            autoComplete="tel"
-            className="font-mono"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-        )}
-      </FormField>
-      <Button type="submit" className="w-full" disabled={busy}>
-        {busy ? "Sending…" : "Send code"}
-      </Button>
-    </form>
-  );
-}
-
-function MagicLinkForm() {
-  const supabase = createClient();
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [stage, setStage] = useState<"enter_email" | "enter_code">("enter_email");
   const [error, setError] = useState<string>();
-  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function sendLink(e: React.FormEvent) {
+  async function sendCode(e: React.FormEvent) {
     e.preventDefault();
     const parsed = emailSchema.safeParse(email.trim());
     if (!parsed.success) {
@@ -180,40 +40,108 @@ function MagicLinkForm() {
     setBusy(true);
     const { error: err } = await supabase.auth.signInWithOtp({
       email: parsed.data,
-      options: { emailRedirectTo: `${location.origin}/auth/callback` },
+      options: { shouldCreateUser: true },
     });
     setBusy(false);
     if (err) {
       setError(err.message);
       return;
     }
-    setSent(true);
+    toast.success("Code sent — check your inbox");
+    setStage("enter_code");
   }
 
-  if (sent) {
-    return (
-      <p className="mt-4 rounded-md bg-ok-bg p-3 text-[0.9375rem] text-ok">
-        Magic link sent — check your inbox and open it on this device.
-      </p>
-    );
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = codeSchema.safeParse(code.trim());
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
+    setError(undefined);
+    setBusy(true);
+    const { error: err } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: parsed.data,
+      type: "email",
+    });
+    setBusy(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
-    <form onSubmit={sendLink} className="mt-4 space-y-4">
-      <FormField label="Email" error={error} required>
-        {(props) => (
-          <Input
-            {...props}
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+    <main className="flex min-h-dvh items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm rounded-lg border bg-card p-6">
+        <h1 className="font-display text-[1.75rem] font-semibold">Sign in</h1>
+        <p className="mt-1 text-text-muted">
+          Enter your email and we&apos;ll send you a 6-digit code.
+        </p>
+
+        {!configured && (
+          <p className="mt-4 rounded-md bg-warn-bg p-3 text-[0.8125rem] text-warn">
+            Sign-in isn&apos;t connected yet. Add the Supabase keys to enable it.
+          </p>
         )}
-      </FormField>
-      <Button type="submit" className="w-full" disabled={busy}>
-        {busy ? "Sending…" : "Email me a magic link"}
-      </Button>
-    </form>
+
+        {stage === "enter_email" ? (
+          <form onSubmit={sendCode} className="mt-5 space-y-4">
+            <FormField label="Email" error={error} required>
+              {(props) => (
+                <Input
+                  {...props}
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoFocus
+                  disabled={!configured}
+                />
+              )}
+            </FormField>
+            <Button type="submit" className="w-full" disabled={busy || !configured}>
+              {busy ? "Sending…" : "Send code"}
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={verify} className="mt-5 space-y-4">
+            <FormField label="6-digit code" helper={`Sent to ${email}`} error={error} required>
+              {(props) => (
+                <Input
+                  {...props}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="font-mono tracking-[0.3em]"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="000000"
+                  autoFocus
+                />
+              )}
+            </FormField>
+            <Button type="submit" className="w-full" disabled={busy}>
+              {busy ? "Verifying…" : "Verify & sign in"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                setStage("enter_email");
+                setError(undefined);
+                setCode("");
+              }}
+            >
+              Use a different email
+            </Button>
+          </form>
+        )}
+      </div>
+    </main>
   );
 }

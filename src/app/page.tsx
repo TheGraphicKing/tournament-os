@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Palette } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { getUser, getMemberships } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 
@@ -14,20 +14,24 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[1200px] flex-col items-center justify-center gap-4 p-6 text-center">
-      <h1 className="font-display text-[1.75rem] font-semibold">Tournament OS</h1>
-      <p className="max-w-md text-text-muted">
-        Foundation build — design system, data model, tenancy and auth are in.
-        Product features land in the next phase.
-      </p>
+    <main className="mx-auto flex min-h-dvh max-w-[1200px] flex-col items-center justify-center gap-5 p-6 text-center">
+      <div className="max-w-xl space-y-3">
+        <h1 className="font-display text-[2rem] font-semibold leading-tight">
+          Run your tournament, end to end.
+        </h1>
+        <p className="text-text-muted">
+          Describe your event once and get a live website, an email campaign, and a marketing
+          kit automatically. Then manage registrations and match day in one place.
+        </p>
+      </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button asChild>
-          <Link href="/styleguide">
-            <Palette aria-hidden /> Open the styleguide
+        <Button asChild size="lg">
+          <Link href="/builder">
+            Build a tournament <ArrowRight aria-hidden />
           </Link>
         </Button>
-        <Button asChild variant="outline">
-          <Link href="/login">Sign in</Link>
+        <Button asChild variant="outline" size="lg">
+          <Link href="/login">Organiser sign in</Link>
         </Button>
       </div>
     </main>

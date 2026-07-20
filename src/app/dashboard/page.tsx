@@ -130,12 +130,11 @@ export default async function DashboardPage({
                         <Plus aria-hidden /> Create your first tournament
                       </Link>
                     </Button>
-                    {/* Sample-event preview so the value is obvious before any
-                        data exists. TODO(rizzfitt): point at the public sample
-                        event page (/t/[slug]) once it's built. */}
+                    {/* The builder turns a description into a live site +
+                        campaign, a fast way to see value before any data. */}
                     <Button asChild variant="ghost" size="sm">
-                      <Link href="/styleguide">
-                        <Sparkles aria-hidden /> Preview a sample event
+                      <Link href="/builder">
+                        <Sparkles aria-hidden /> Try the tournament builder
                       </Link>
                     </Button>
                   </div>
