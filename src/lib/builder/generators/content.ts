@@ -192,20 +192,46 @@ export function generateContacts(spec: GenerationSpec): {
  * the prompt" fallback when no AI key is configured.
  */
 export function buildMasterPrompt(spec: GenerationSpec, siteUrl?: string): string {
+  const p = spec.branding.palette;
   return [
-    `You are a senior marketing copywriter and web designer for grassroots sport.`,
-    `Using ONLY the tournament facts below, produce:`,
-    `1. A single-page tournament website (HTML), mobile-first, using the brand colors.`,
-    `2. Three emails: an announcement, a call-for-players, and a reminder.`,
-    `3. A marketing kit: 3 Instagram captions, 2 poster hooks, 1 WhatsApp broadcast, and 1 reusable description.`,
+    `# ROLE`,
+    `You are an award-winning web designer and conversion copywriter who specialises in`,
+    `grassroots sports events. You ship premium, modern, single-page event sites that look`,
+    `hand-crafted, and marketing copy that a local community actually shares.`,
     ``,
-    `Rules: never invent facts. If a field is empty, leave that section out.`,
-    `Write ranges with the word "to". Do not use em dashes. Keep the tone confident, warm, and community-facing.`,
-    siteUrl ? `Link to this registration/info page where relevant: ${siteUrl}` : ``,
+    `# TASK`,
+    `Using ONLY the tournament facts at the bottom, produce four deliverables:`,
     ``,
-    `--- TOURNAMENT FACTS ---`,
+    `## 1. Landing page (single self-contained HTML file)`,
+    `- Mobile-first, responsive, fast. Inline all CSS in a <style> tag. No frameworks, no external JS except Google Fonts.`,
+    `- Design language: bold, sporty, premium. NOT a generic template. Use real visual hierarchy, generous whitespace, and a strong type scale (clamp() for fluid sizing).`,
+    `- Theme strictly from these brand tokens:`,
+    `    accent ${p.accent}, accent-pressed ${p.accentPress}, on-accent ${p.onAccent}, ink ${p.ink}, secondary ${p.secondary}.`,
+    `  Enforce AA contrast; if accent-on-white fails, use it only on filled surfaces.`,
+    `- Sections, in order (omit any with no data): sticky header with nav + register button; a full-bleed gradient hero (event name, tagline, date/city/format chips, primary CTA); an "at a glance" detail strip; categories as cards with fee badges; format; prizes with a large prize-pool figure; sponsors grouped by tier; a high-contrast "how to register" CTA band; a footer with organiser, contact, socials, and map link.`,
+    `- Typography: pair a geometric display face (e.g. Space Grotesk or Clash) with a clean body (Inter). Numbers/dates feel deliberate.`,
+    `- Motion: restrained scroll-reveal only; respect prefers-reduced-motion. No autoplay, no carousels.`,
+    `- The primary call to action is "Register" and must link to the registration URL if present.`,
+    ``,
+    `## 2. Emails (plain text, ready to paste)`,
+    `Announcement, call-for-players, and reminder. Each: a punchy subject line and a short body`,
+    `(under 120 words) that states the essentials and drives to the register link.`,
+    ``,
+    `## 3. Marketing kit`,
+    `3 Instagram captions (each with 3 to 5 relevant hashtags), 2 poster/story hooks (max 6 words),`,
+    `1 WhatsApp broadcast (with light emoji, scannable), and 1 reusable one-paragraph description.`,
+    ``,
+    `## 4. A short "what I assumed / what is missing" note`,
+    `List any facts that were blank so the organiser knows what to add for a stronger result.`,
+    ``,
+    `# HARD RULES`,
+    `- Never invent facts (no fake dates, prices, sponsors, or quotes). If a field is empty, omit that section entirely.`,
+    `- Write ranges with the word "to" (e.g. "9 AM to 5 PM"). Never use em dashes; use commas, periods, or colons.`,
+    `- Tone: confident, warm, community-facing. Not corporate.`,
+    siteUrl ? `- Where a link is needed, use: ${siteUrl}` : `- If no registration link exists, add a clear "registration opening soon" note instead of a dead button.`,
+    `- Output each deliverable in its own clearly labelled section. Put the landing page HTML in one fenced \`\`\`html block.`,
+    ``,
+    `# TOURNAMENT FACTS`,
     renderSpecText(spec),
-  ]
-    .filter((l) => l !== undefined)
-    .join("\n");
+  ].join("\n");
 }

@@ -31,6 +31,13 @@ export interface GenerationSpec {
   };
   when: { dateRange: string; registrationDeadline: string };
   where: { venue: string; address: string; city: string; mapLink: string };
+  organizer: {
+    orgName: string;
+    contactName: string;
+    email: string;
+    phone: string;
+    socials: string[];
+  };
   categories: Array<{ label: string; bracket: string; fee: string; slots: string }>;
   format: { structure: string; ballType: string; notes: string };
   prizes: { pool: string; breakdown: string; perks: string };
@@ -56,7 +63,8 @@ function humanTone(tone: string): string {
 }
 
 export function buildGenerationSpec(brief: TournamentBrief): GenerationSpec {
-  const { identity, dates, venue, format, prizes, registration, branding, marketing } = brief;
+  const { identity, organizer, dates, venue, format, prizes, registration, branding, marketing } =
+    brief;
 
   const oneLinerParts = [
     has(identity.name) ? identity.name : "This tournament",
@@ -84,6 +92,13 @@ export function buildGenerationSpec(brief: TournamentBrief): GenerationSpec {
       address: clean(venue.address),
       city: clean(venue.city),
       mapLink: clean(venue.map_link),
+    },
+    organizer: {
+      orgName: clean(organizer.org_name),
+      contactName: clean(organizer.contact_name),
+      email: clean(organizer.email),
+      phone: clean(organizer.phone),
+      socials: organizer.website_or_socials.map(clean).filter(has),
     },
     categories: brief.categories
       .filter((c) => has(c.label))
@@ -156,6 +171,22 @@ export function renderSpecText(spec: GenerationSpec): string {
   add("Address", spec.where.address);
   add("City", spec.where.city);
   add("Map", spec.where.mapLink);
+
+  if (
+    spec.organizer.orgName ||
+    spec.organizer.contactName ||
+    spec.organizer.email ||
+    spec.organizer.phone ||
+    spec.organizer.socials.length
+  ) {
+    lines.push("");
+    lines.push("## Organizer & contact");
+    add("Organisation", spec.organizer.orgName);
+    add("Contact", spec.organizer.contactName);
+    add("Email", spec.organizer.email);
+    add("Phone", spec.organizer.phone);
+    add("Socials", spec.organizer.socials.join(", "));
+  }
 
   if (spec.categories.length) {
     lines.push("");
