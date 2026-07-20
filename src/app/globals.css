@@ -164,7 +164,7 @@
   input::placeholder,
   textarea::placeholder {
     color: var(--text-faint);
-    opacity: 1;
+    opacity: 0.5;
   }
   @media (prefers-reduced-motion: reduce) {
     *,
