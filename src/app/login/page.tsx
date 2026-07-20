@@ -1,35 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { z } from "zod";
+import { MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { FormField } from "@/components/app/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/lib/toast";
 
 const emailSchema = z.string().email("Enter a valid email address");
-const codeSchema = z.string().regex(/^\d{6}$/, "Enter the 6-digit code");
 
 /**
- * Sign in with an email one-time code (6 digits). Free via Supabase's
- * built-in email — no SMS provider, no magic-link round-trip. The whole
- * flow: enter email -> receive code -> verify.
+ * Sign in with an email link (passwordless). Free via Supabase's built-in
+ * email — no SMS provider, no password. Enter email -> receive a one-time
+ * sign-in link -> click it -> you're in (exchanged at /auth/callback).
  */
 export default function LoginPage() {
-  const router = useRouter();
   const supabase = createClient();
   const configured = isSupabaseConfigured();
 
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [stage, setStage] = useState<"enter_email" | "enter_code">("enter_email");
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
-  async function sendCode(e: React.FormEvent) {
+  async function sendLink(e: React.FormEvent) {
     e.preventDefault();
     const parsed = emailSchema.safeParse(email.trim());
     if (!parsed.success) {
@@ -40,38 +36,17 @@ export default function LoginPage() {
     setBusy(true);
     const { error: err } = await supabase.auth.signInWithOtp({
       email: parsed.data,
-      options: { shouldCreateUser: true },
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${location.origin}/auth/callback?next=/dashboard`,
+      },
     });
     setBusy(false);
     if (err) {
       setError(err.message);
       return;
     }
-    toast.success("Code sent — check your inbox");
-    setStage("enter_code");
-  }
-
-  async function verify(e: React.FormEvent) {
-    e.preventDefault();
-    const parsed = codeSchema.safeParse(code.trim());
-    if (!parsed.success) {
-      setError(parsed.error.issues[0].message);
-      return;
-    }
-    setError(undefined);
-    setBusy(true);
-    const { error: err } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: parsed.data,
-      type: "email",
-    });
-    setBusy(false);
-    if (err) {
-      setError(err.message);
-      return;
-    }
-    router.push("/dashboard");
-    router.refresh();
+    setSent(true);
   }
 
   return (
@@ -79,7 +54,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-lg border bg-card p-6">
         <h1 className="font-display text-[1.75rem] font-semibold">Sign in</h1>
         <p className="mt-1 text-text-muted">
-          Enter your email and we&apos;ll send you a 6-digit code.
+          Enter your email and we&apos;ll send you a secure sign-in link.
         </p>
 
         {!configured && (
@@ -88,8 +63,31 @@ export default function LoginPage() {
           </p>
         )}
 
-        {stage === "enter_email" ? (
-          <form onSubmit={sendCode} className="mt-5 space-y-4">
+        {sent ? (
+          <div className="mt-5 space-y-3">
+            <div className="flex items-start gap-3 rounded-md bg-ok-bg p-3 text-ok">
+              <MailCheck aria-hidden className="mt-0.5 size-5 shrink-0" />
+              <div className="text-[0.9375rem]">
+                <p className="font-medium">Check your inbox</p>
+                <p className="text-ok/90">
+                  We sent a sign-in link to {email}. Open it on this device to continue.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                setSent(false);
+                setError(undefined);
+              }}
+            >
+              Use a different email
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={sendLink} className="mt-5 space-y-4">
             <FormField label="Email" error={error} required>
               {(props) => (
                 <Input
@@ -105,39 +103,7 @@ export default function LoginPage() {
               )}
             </FormField>
             <Button type="submit" className="w-full" disabled={busy || !configured}>
-              {busy ? "Sending…" : "Send code"}
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={verify} className="mt-5 space-y-4">
-            <FormField label="6-digit code" helper={`Sent to ${email}`} error={error} required>
-              {(props) => (
-                <Input
-                  {...props}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  className="font-mono tracking-[0.3em]"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="000000"
-                  autoFocus
-                />
-              )}
-            </FormField>
-            <Button type="submit" className="w-full" disabled={busy}>
-              {busy ? "Verifying…" : "Verify & sign in"}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={() => {
-                setStage("enter_email");
-                setError(undefined);
-                setCode("");
-              }}
-            >
-              Use a different email
+              {busy ? "Sending…" : "Email me a sign-in link"}
             </Button>
           </form>
         )}
