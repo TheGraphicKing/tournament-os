@@ -67,10 +67,12 @@ then apply migrations with `supabase db push`.
 - **RLS** — memberships gate org data; players read their own
   entries/payments; anonymous users read only published tournament page
   data. Helpers live in the `private` schema.
-- **Auth** — Supabase phone OTP (primary) + email magic link (fallback)
-  on **/login**; session refresh in [proxy.ts](src/proxy.ts); per-org
-  role helpers (owner/manager/desk) in
-  [session.ts](src/lib/auth/session.ts).
+- **Auth** — passwordless **email sign-in link** on **/login**
+  (Supabase built-in email; free-tier compatible, no SMS/domain needed),
+  exchanged at `/auth/callback`; session refresh in
+  [proxy.ts](src/proxy.ts); per-org role helpers (owner/manager/desk) in
+  [session.ts](src/lib/auth/session.ts). The app degrades gracefully when
+  Supabase env vars are absent (see [env.ts](src/lib/supabase/env.ts)).
 - **Domain types** — Zod schemas for every table at the boundary
   ([schemas.ts](src/lib/domain/schemas.ts)) and a typed Supabase client
   ([database.types.ts](src/lib/supabase/database.types.ts)). No `any` in
