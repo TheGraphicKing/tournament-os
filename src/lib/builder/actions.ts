@@ -38,6 +38,19 @@ export async function createBriefFromForm(raw: unknown): Promise<BuilderResult> 
   return { ok: true, id: row.id, token: row.edit_token };
 }
 
+/** Load a Brief by id only, for the PUBLIC landing page (no token). */
+export async function loadPublicBrief(
+  id: string
+): Promise<{ ok: true; brief: TournamentBrief } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("builder_render_brief", { p_id: id });
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Not found." };
+  const parsed = briefSchema.safeParse(data);
+  if (!parsed.success) return { ok: false, error: "Stored brief is malformed." };
+  return { ok: true, brief: parsed.data };
+}
+
 /** Load a Brief by id + edit token (token is the capability). */
 export async function loadBrief(
   id: string,

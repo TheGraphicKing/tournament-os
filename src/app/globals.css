@@ -160,6 +160,12 @@
     outline: none;
     box-shadow: var(--focus);
   }
+  /* Placeholders must read clearly as hints, not filled values. */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-faint);
+    opacity: 1;
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

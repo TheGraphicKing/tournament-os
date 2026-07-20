@@ -608,6 +608,10 @@ export interface Database {
         Args: { p_id: string; p_token: string; p_outputs: Json; p_status?: string };
         Returns: Database["public"]["Tables"]["builder_briefs"]["Row"];
       };
+      builder_render_brief: {
+        Args: { p_id: string };
+        Returns: Json;
+      };
     };
     Enums: {
       org_role: OrgRole;
