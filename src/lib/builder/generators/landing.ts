@@ -427,18 +427,7 @@ export function renderLandingHtml(spec: GenerationSpec): string {
     }
     document.addEventListener('scroll', onScroll, {passive:true}); onScroll();
 
-    /* Reveal on scroll */
-    var els = document.querySelectorAll('.reveal');
-    if(!('IntersectionObserver' in window)){ els.forEach(function(e){e.classList.add('in')}); }
-    else {
-      var io = new IntersectionObserver(function(en){
-        en.forEach(function(x){ if(x.isIntersecting){ x.target.classList.add('in'); io.unobserve(x.target); } });
-      }, {threshold:.12, rootMargin:'0px 0px -8% 0px'});
-      els.forEach(function(e){ io.observe(e); });
-      setTimeout(function(){ els.forEach(function(e){ e.classList.add('in'); }); }, 2600);
-    }
-
-    /* Count-up stats */
+    /* Count-up stats (defined first so the reveal handler can trigger it) */
     var counted = false;
     function runCount(){
       if(counted) return; counted = true;
@@ -455,13 +444,22 @@ export function renderLandingHtml(spec: GenerationSpec): string {
           if(pr < 1) requestAnimationFrame(step);
         }
         requestAnimationFrame(step);
+        // Guarantee the final value even if RAF is throttled (background tab).
+        setTimeout(function(){ el.textContent = prefix + target.toLocaleString(); }, dur + 300);
       });
     }
-    var statSec = document.querySelector('.stats');
-    if(statSec && 'IntersectionObserver' in window){
-      var so = new IntersectionObserver(function(en){ en.forEach(function(x){ if(x.isIntersecting){ runCount(); so.disconnect(); } }); }, {threshold:.4});
-      so.observe(statSec);
-    } else { runCount(); }
+
+    /* Reveal on scroll; the stat band counts up as soon as it reveals */
+    var els = document.querySelectorAll('.reveal');
+    function revealEl(el){ el.classList.add('in'); if(el.querySelector && el.querySelector('.stat-num')) runCount(); }
+    if(!('IntersectionObserver' in window)){ els.forEach(revealEl); }
+    else {
+      var io = new IntersectionObserver(function(en){
+        en.forEach(function(x){ if(x.isIntersecting){ revealEl(x.target); io.unobserve(x.target); } });
+      }, {threshold:.12, rootMargin:'0px 0px -8% 0px'});
+      els.forEach(function(e){ io.observe(e); });
+      setTimeout(function(){ els.forEach(revealEl); }, 2600);
+    }
 
     /* 3D tilt on category cards */
     if(!reduce){
